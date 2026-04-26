@@ -23,7 +23,7 @@ fig, ax = ox.plot_graph(
 
 print("Saved stanford_map.png")
 
-# Check that key buildings can be snapped to nearby nodes
+# Check if key buildings snap to nearby nodes
 test_buildings = {
     "Gates": (37.4302, -122.1753),
     "Main Quad": (37.4274, -122.1700),

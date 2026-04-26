@@ -1,0 +1,303 @@
+100-101K
+110-101
+110-112
+110-114
+120-101
+120-215
+120-314
+120-410
+120-414
+120-452
+120-59
+120-S40
+160-120
+160-123
+160-124
+160-125
+160-127
+160-129
+160-314
+160-315
+160-317
+160-318
+160-319
+160-321
+160-322
+160-323
+160-325
+160-326
+160-328
+160-329
+160-330
+160-331
+160-332
+160-B35
+160-B37
+160-B40
+20-21B
+20-21G
+20-22K
+200-002
+200-013
+200-015
+200-030
+200-032
+200-034
+200-105
+200-107
+200-124
+200-201
+200-202
+200-203
+200-205
+200-217
+200-219
+200-230
+200-303
+200-305
+240-101
+240-110
+240-201
+240-202
+250-108
+250-201
+260-002
+260-003
+260-004
+260-007
+260-008
+260-011
+260-012
+260-113
+260-244
+260-301
+300-300
+300-303
+320-105
+320-109
+320-220
+320-227
+320-241
+360-361A
+370-370
+380-380C
+380-380D
+380-380F
+380-380W
+380-380X
+380-380Y
+380-381T
+380-381U
+40-41J
+40-42A
+420-040
+420-041
+460-301
+460-334
+460-429
+50-51A
+50-51B
+50-51P
+50-52E
+50-52H
+50-52T
+500-106
+530-127
+540-103
+540-108
+60-108
+60-109
+70-71D
+90-92Q
+AGASSIZ 10 (Hopkins)
+AGASSIZ 11 (Hopkins)
+AGASSIZ 12 (Hopkins)
+ANKO 008
+ANKO 033
+ANKO 106
+ANKO 107
+ANKO 108
+ANKO 109
+Alway Building, Room M106
+Alway Building, Room M112
+Alway Building, Room M114
+Art Gallery 7
+BARNUM 002A
+Beckman Center B060
+Beckman Center B100
+Bing Concert Hall Stage
+Bing Concert Hall Studio
+Bishop Auditorium
+Braun 102
+Braun 103
+Braun 105
+Braun 106
+Braun 111
+Braun 121
+Braun 131
+Braun 211
+Braun Rehearsal Hall
+CCSR 4205
+CODAB60
+CODAB80
+CODAB90
+Campbell Recital Hall
+Cemex Auditorium
+Chemistry Gazebo
+Clark Center S361
+DINKG10
+Departmental Room
+Dinkelspiel Auditorium
+E.D. Stone Edwards Bldg R358
+Econ 106
+Econ 139
+Econ 140
+Econ 206
+Econ 218
+Encina Center 464
+Encina Commons 119
+Encina Commons 123
+Encina West 101
+Encina West 106
+Encina West 108
+Encina West 202
+Encina West 208
+Encina West 219
+Encina West 400
+Encina West 417
+GSB Bass 321
+GSB Botha-Chan 130
+GSB Botha-Chan 332
+GSB Class of 1968 101
+GSB Class of 1968 106
+GSB Class of 1968 108
+GSB Faculty East 103
+GSB Faculty East 104
+GSB Faculty East 247
+GSB Faculty East 259
+GSB Gunn 101
+GSB Gunn 102
+GSB McClelland 101D
+GSB McClelland 105
+GSB Patterson 101
+Gates B1
+Gates B12
+Gates B3
+Gates100
+Gilbert Biological Science 117
+Green Earth Sciences104
+Green Earth Sciences131
+Green Earth Sciences134
+Green Earth Sciences150
+Hewlett Teaching Center 102
+Hewlett Teaching Center 103
+Hewlett Teaching Center 200
+Hewlett Teaching Center 201
+Hewlett Teaching Center Rm 101
+Huang Engineering Center 18
+Huang Engineering Center 203
+Jasper Ridge Hillside Lab
+Knight Building, Room K18
+Knoll 103
+Knoll 315
+Knoll 317
+Knoll217
+LAW 180
+LAW 185
+LAW 272
+LAW 280A
+LAW 290
+LAW 90
+LAW 95
+Lathrop 014
+Lathrop 015
+Lathrop 016
+Lathrop 017
+Lathrop 018
+Lathrop 180
+Lathrop 190
+Lathrop 282
+Lathrop 290
+Lathrop 292
+Lathrop 294
+Lathrop 296
+Lathrop 298
+Lathrop 299
+Li Ka Shing Center, room 120
+Li Ka Shing Center, room 130
+Li Ka Shing Center, room 209
+Littlefield 103
+Littlefield 104
+Littlefield 107
+McCullough 115
+McCullough 122
+McCullough 126
+McMurtry Art Building 011B
+McMurtry Art Building 115
+McMurtry Art Building 350
+McMurtry Art Building 360
+McMurtry Art Building 370
+McMurtry Art Building Oshman
+Memaud125
+Memaud126
+Memaud204
+Mitchell Earth Sciences B4
+Mitchell Earth Sciences B67
+Mitchell Earth Sciences350/372
+NVIDIA Auditorium
+O'Donohue Fmly Stanf Educ Farm
+Packrd101
+Potter House
+Raikes 104
+Raikes 111
+Raikes102
+Remote
+Roble Gymnasium 113
+Roble Gymnasium 114
+Roble Gymnasium 117
+Roble Gymnasium 136
+Roble Gymnasium 137
+Roble Gymnasium 139
+SAPP 201
+SAPP 208
+SAPP 215
+SAPP 304
+SAPP 306
+SAPP 312
+SAPP 318
+SAPP 320
+STLC 104
+STLC 105
+STLC 111
+STLC 114
+STLC 118
+STLC 119
+STLC115
+School of Medicine Room
+Sequoia Hall 200
+Shriram 052
+Shriram 104
+Shriram 108
+Shriram 366
+Shriram 368
+Skilling Auditorium
+SpilkerEngAppliedSci143
+SpilkerEngAppliedSci317
+Sweet303
+Sweet403
+Thornton 102
+Thornton 110
+Thornton 207
+Thornton 208
+Thornton 209
+Thornton 210
+Thornton 211
+Turing Auditorium
+William H. Neukom 102
+Y2E2 101
+Y2E2 105
+Y2E2 111
+Y2E2 184
+Y2E2 266
+Y2E2 292A
+Y2E2 292E

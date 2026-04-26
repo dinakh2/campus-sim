@@ -44,14 +44,14 @@ for dept_code in DEPARTMENTS:
                         "start_date": schedule.start_date,
                         "end_date": schedule.end_date,
                     })
-                    
+
     except Exception as e:
         print(f"  Error on {dept_code}: {e}")
         continue
 
 df = pd.DataFrame(rows)
-df.to_csv("courses_spring2026.csv", index=False)
-print(f"\nSaved {len(df)} rows to courses_spring2026.csv")
+df.to_csv("courses_2025_2026.csv", index=False)
+print(f"\nSaved {len(df)} rows to courses_2025_2026.csv")
 print(f"Unique buildings: {df['building'].nunique()}")
 print(f"Max enrollment course: {df.loc[df['curr_enrolled'].idxmax(), 'title']} ({df['curr_enrolled'].max()} students)")
 print(df.head(10))
