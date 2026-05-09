@@ -1,5 +1,11 @@
+import sys
+from pathlib import Path
+
 from explorecourses import CourseConnection
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from paths import COURSES_RAW
 
 connect = CourseConnection()
 year = "2025-2026"
@@ -50,7 +56,7 @@ for dept_code in DEPARTMENTS:
         continue
 
 df = pd.DataFrame(rows)
-df.to_csv("courses_2025_2026.csv", index=False)
+df.to_csv(COURSES_RAW, index=False)
 print(f"\nSaved {len(df)} rows to courses_2025_2026.csv")
 print(f"Unique buildings: {df['building'].nunique()}")
 print(f"Max enrollment course: {df.loc[df['curr_enrolled'].idxmax(), 'title']} ({df['curr_enrolled'].max()} students)")
