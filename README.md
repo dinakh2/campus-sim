@@ -67,8 +67,6 @@ Baseline results:
 | single agent (50m edge, 10 min) | 20 | 0 | — | A | 150 m²/p, exposure_frac = 0 |
 | fake crowd (250 on 50m edge, 1 min) | 250 | 250 | 00:30 | F | 0.6 m²/p, all 250 fully exposed |
 
-Real eval on the current 6,700-agent Monday trajectory: **31,672 edge-minutes observed, peak congested = 0**. The tightest m²/person seen anywhere all day was 2.27 (just above the 2.2 D threshold), and the 9 nearest-misses were all on sub-3m graph edges that are basically zero-length OSM artifacts. Median agents per (edge, minute) = 1, max = 33. So the eval pipeline runs end-to-end on real data, but the sim is producing a quiet campus — likely a mix of the home→in_class teleport bug (still being chased), 6,700 UG only (vs ~17k total students), and 3m path width being generous. Sim-side problem, not eval-side. Full per-edge-minute table written to `outputs/edge_minute_los.parquet` and summary to `outputs/congestion_baseline.json`.
-
 ### Where things are 
 
 - **Code:** `pipeline/`, `sim/`, `eval/` - pipeline scripts, simulator, evaluator
