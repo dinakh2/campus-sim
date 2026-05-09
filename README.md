@@ -9,7 +9,7 @@
 
 ### General Updates
 
-The data scraping pipeline and barebones simulation pipline are built and run. A simulation of a school day with 6,700 simulated students comletes with 11.3M trajectory samples. Here is where each pipeline stage code lives: 
+The data scraping pipeline and barebones simulation pipline are built and run. A simulation of a school day with 6,700 simulated students comletes with 11.3M trajectory samples. Here is where each pipeline code lives: 
 
 1. **`scrapers/scrape_courses.py`** - pulls 2025-2026 course data from the Explore Courses api
 2. **`scrapers/get_buildings.py`** - pulls unique building strings
@@ -19,7 +19,7 @@ The data scraping pipeline and barebones simulation pipline are built and run. A
 6. **`sim/load_data.py`** - joins population + schedules + buildings into per-agent trip plans
 7. **`sim/runner.py`** - multi-agent state machine (home → moving → in_class → between → done) with edge-progress movement, right now running from 06:00–22:00 at 10s timesteps ... still a bit buggy, need to play with states/go home behavior
 
-The barebones simulation currently has plausible results: empty class buildings pre-8am, ramps up through morning passing periods, winds down through evening. 
+The barebones simulation has plausible results: empty class buildings pre-8am, ramps up through morning passing periods, winds down through evening. 
 
 ### Project questions
 
@@ -56,7 +56,7 @@ Run command:
 
 ```bash
 python eval/congestion.py --baselines-only  # baselines only
-python eval/congestion.py  # baselines + real trajectory (currently bugged)
+python eval/congestion.py  # baselines + real trajectory (currently buggy)
 ```
 
 Baseline results:
