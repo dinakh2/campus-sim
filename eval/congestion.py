@@ -31,7 +31,7 @@ LOS_THRESHOLDS: list[tuple[str, float]] = [
     ("A", 3.7), ("B", 2.8), ("C", 2.2), ("D", 1.5), ("E", 0.7), ("F", 0.0),
 ]
 CONGESTED_M2_PER_PERSON = 2.2  # < this LoS D or worse
-DEFAULT_PATH_WIDTH_M = 3.0
+DEFAULT_PATH_WIDTH_M = 2.0
 DEFAULT_SAMPLE_DT_S = 30.0  # match sim/runner.py SAMPLE_EVERY
 
 

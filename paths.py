@@ -16,6 +16,7 @@ GEOCODED_BUILDINGS = RAW / "geocoded_buildings.json"
 # Pipeline outputs
 COURSES_TAGGED = PROCESSED / "courses_spring_2026_tagged.csv"
 STUDENTS = PROCESSED / "students.csv"
+STUDENTS_EXTENDED = PROCESSED / "students_with_behaviors.csv"
 SCHEDULES = PROCESSED / "schedules.csv"
 
 # Make sure output dirs exist when module is imported

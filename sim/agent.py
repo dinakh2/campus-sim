@@ -5,16 +5,26 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
+import sys
+from pathlib import Path
+
 import numpy as np
-from sim.load_data import Meeting
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from pipeline import behavior_params as bp
+
 rng = np.random.default_rng(42)
 
-# home/class -> next class trip that needs to be executed
+# One destination the agent needs to reach and stay at for some duration
+# (coffee, lunch, home_stop, go_home). All trips have a target arrival time,
+# a destination, a stay duration, and a purpose tag for diagnostics/eval
 @dataclass
 class TripPlan:
     target_arrival_sec: int  # when the agent needs to be at destination
     dest_node: int  # OSMnx node id
-    section_id: str | None  # for "going home" = None
+    section_id: str | None  # original class section_id; None for non-class trips
+    purpose: str = "class"  # class | coffee | lunch | home_stop | go_home
+    duration_sec: int = 0  # how long agent stays at dest; end_sec = target + duration
 
 # One student
 # State machine:
@@ -23,14 +33,20 @@ class TripPlan:
 #     "in_class" - at a class destination, sitting through lecture
 #     "done" - last class of the day done, returned home
 class Agent:
-    __slots__ = ("student_id", "speed", "buffer_sec", "current_node", "path", 
-                 "path_progress", "status", "trips", "trip_idx", 
-                 "current_meeting_end_sec", "_G", "_path_cache", "_edge_lengths")
+    __slots__ = ("student_id", "speed", "mode", "buffer_sec", "current_node", "path",
+                 "path_progress", "status", "trips", "trip_idx",
+                 "current_dest_end_sec", "_G", "_path_cache",
+                 "_edge_lengths", "_edge_walk_ok", "_edge_bike_ok",
+                 "n_skipped_walks")
 
-    def __init__(self, student_id: str, home_node: int, speed: float, trips: list[TripPlan], G, path_cache, edge_lengths):
+    def __init__(self, student_id: str, home_node: int, speed: float, mode: str,
+                 trips: list[TripPlan], G,
+                 path_cache_walk: dict, path_cache_bike: dict,
+                 edge_lengths: dict, edge_walk_ok: dict, edge_bike_ok: dict):
         self.student_id = student_id
         self.current_node = home_node
         self.speed = speed
+        self.mode = mode  # "walk" | "bike" | "electric"
 
         # Buffer time before class to leave dorm
         self.buffer_sec = max(30.0, float(rng.normal(180, 60)))
@@ -41,12 +57,18 @@ class Agent:
 
         self.trips = trips  # list of TripPlan, sorted by time
         self.trip_idx = 0
-        self.current_meeting_end_sec: int | None = None
+        self.current_dest_end_sec: int | None = None
 
         # grab cached info from g
         self._G = G
-        self._path_cache = path_cache
+        # Bikers + e-bikes route on the bike cache (composed graph with walk-only edges penalized); walkers on the walk-only cache
+        self._path_cache = path_cache_bike if mode in ("bike", "electric") else path_cache_walk
         self._edge_lengths = edge_lengths
+        self._edge_walk_ok = edge_walk_ok
+        self._edge_bike_ok = edge_bike_ok
+
+        # Diagnostic: count trips where home/dest collide on a single graph node so the agent was forced to skip the walk entirely
+        self.n_skipped_walks = 0
 
     # ----------- helpers --------------
 
@@ -71,17 +93,36 @@ class Agent:
             return (self.path[0], self.path[1])
         return (None, None)
 
-    # Get cached path from node to dst, return [src] if no path
+    # Purpose of the current trip "class"/"coffee"/"lunch"/"home_stop"/"go_home"
+    def current_purpose(self) -> str:
+        if 0 <= self.trip_idx < len(self.trips):
+            return self.trips[self.trip_idx].purpose
+        return ""
+
+    # Get cached path node to dst return [src] if no path
     def _get_path(self, src: int, dst: int) -> list[int]:
-        return self._path_cache.get((src, dst), [src])
+        cached = self._path_cache.get((src, dst))
+        if cached is None:
+            return [src]
+        return list(cached)
+
+    # Effective traversal speed on edge (u, v) for this agent
+    # biker on walk-only treated as dismount -> BIKER_DISMOUNT_SPEED_MPS
+    def _edge_speed(self, u: int, v: int) -> float:
+        if self.mode in ("bike", "electric") and not self._edge_bike_ok.get((u, v), True):
+            return bp.BIKER_DISMOUNT_SPEED_MPS
+        return self.speed
 
     def _estimate_travel_sec(self, dst: int) -> float:
         path = self._get_path(self.current_node, dst)
         if len(path) < 2:
             return 0.0
-        total = sum(self._edge_lengths.get((path[i], path[i + 1]), 50.0)
-                    for i in range(len(path) - 1))
-        return total / max(self.speed, 0.1)
+        total_sec = 0.0
+        for i in range(len(path) - 1):
+            u, v = path[i], path[i + 1]
+            length = self._edge_lengths.get((u, v), 50.0)
+            total_sec += length / max(self._edge_speed(u, v), 0.1)
+        return total_sec
 
     # ---------------- main api ---------------------
 
@@ -97,10 +138,10 @@ class Agent:
             depart_at = trip.target_arrival_sec - self.buffer_sec - travel
 
             if t >= depart_at:
-                # Already at dest = back-to-back classes in same building, go straight to in_class.
-                if self.current_node == trip.dest_node:
+
+                if self.current_node == trip.dest_node and self.status == "between":
                     self.status = "in_class"
-                    self.current_meeting_end_sec = self._end_for_current_trip()
+                    self.current_dest_end_sec = self._end_for_current_trip()
                     return
 
                 path = self._get_path(self.current_node, trip.dest_node)
@@ -108,56 +149,66 @@ class Agent:
                     self.path = path
                     self.path_progress = 0.0
                     self.status = "moving"
+                elif self.current_node == trip.dest_node:
+
+                    self.n_skipped_walks += 1
+                    self.status = "in_class"
+                    self.current_dest_end_sec = self._end_for_current_trip()
                 else:
-                    # No cached path - graph disconnect. Snap so we don't sit at home labeled in_class.
+                    # No cached path
+                    # Snap so we actually move
                     print(f"[WARN] no path {self.current_node} -> {trip.dest_node} "
                           f"for {self.student_id}; snapping")
+                    
                     self.current_node = trip.dest_node
                     self.status = "in_class"
-                    self.current_meeting_end_sec = self._end_for_current_trip()
+                    self.current_dest_end_sec = self._end_for_current_trip()
             return
 
-        # State: moving - advance along path
+        # State: moving - advance along path using per-edge speed (so bikers -> dismount speed when walk-only segments)
         if self.status == "moving":
-            self.path_progress += self.speed * dt
-            
-            # length greater than two, move
+            if len(self.path) >= 2:
+                u, v = self.path[0], self.path[1]
+                self.path_progress += self._edge_speed(u, v) * dt
+
             while len(self.path) >= 2 and self.path_progress >= \
                     self._edge_lengths.get((self.path[0], self.path[1]), 50.0):
+                
                 length = self._edge_lengths.get((self.path[0], self.path[1]), 50.0)
                 self.path_progress -= length
                 self.path.pop(0)
                 self.current_node = self.path[0]
 
-            # length less than two, arrived at dest, either done or in_class as of now
+            # Path drained
+            # agent arrived. go_home -> done; everything else
+            # (class / coffee / lunch / home_stop) -> sit at dest for duration
             if len(self.path) < 2:
                 self.path_progress = 0.0
                 current_trip = self.trips[self.trip_idx]
 
-                if current_trip.section_id is None:
+                if current_trip.purpose == "go_home":
                     self.status = "done"
-                    self.current_meeting_end_sec = None
+                    self.current_dest_end_sec = None
                 else:
                     self.status = "in_class"
-                    self.current_meeting_end_sec = self._end_for_current_trip()
+                    self.current_dest_end_sec = self._end_for_current_trip()
 
             return
 
-        # State: in_class - wait for class to end, then prep for next trip
+        # State: in_class - sit at destination until duration elapses, then move on
+        # Covers classes AND behavior trips (coffee/lunch/home_stop)
         if self.status == "in_class":
-            if self.current_meeting_end_sec is not None and t >= self.current_meeting_end_sec:
-                # Class is over; move to next trip
+            if self.current_dest_end_sec is not None and t >= self.current_dest_end_sec:
                 self.trip_idx += 1
-                self.current_meeting_end_sec = None
+                self.current_dest_end_sec = None
                 self.status = "between"
             return
 
         # status == "done": no-op
 
-    # Helper to know what time class ends for current trip, use to transition in_class -> between or done
+    # Absolute time the agent should leave the current destination
     def _end_for_current_trip(self) -> int | None:
         if self.trip_idx < len(self.trips):
             t = self.trips[self.trip_idx]
-            return getattr(t, "meeting_end_sec", None)
-        
+            return t.target_arrival_sec + t.duration_sec
         return None

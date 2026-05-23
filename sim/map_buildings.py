@@ -90,6 +90,12 @@ BUILDING_LOCATIONS = {
     "Turing":       ("Turing Auditorium",               37.42925676857834,  -122.1775681182858),
     "William":      ("William H. Neukom Building",      37.423609858584584, -122.16811595876693),
     "Y2E2":         ("Y2E2 Building",                   37.42820895125612,  -122.17541302993116),
+    "Green":         ("Green Library",                   37.435269655170146, -122.17057323584405),
+    "Lane":         ("Lane Medical Library",                   37.43283798273006, -122.17546560185971),
+
+
+    "AOERC":         ("Arrillaga Outdoor Education and Recreation Center",                   37.427044922889245, -122.17747710871191),
+    "ACSR":         ("Arrillaga Center for Sports and Recreation",                   37.43000654941918, -122.16381620849373),
 }
 
 

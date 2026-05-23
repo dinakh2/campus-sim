@@ -83,6 +83,105 @@ Baseline results:
 
 ---
 
+## Checkpoint 2 Updates (May 22, 2026)
+
+### General Updates
+
+- **Fixed two simulator bugs**: a shared path-cache list was being changed by `agent.path.pop(0)` during traversal, so each agent drained the cached trip for everyone else on the same route + the "same-OSM-node fast path" was firing from the `home` state, so agents would teleport to their first class if dorm and class building would snap to the same graph node. With these cahnges --> sim stopped shwoing "peak congested = 0" 
+- **Implemented behavior layers**: Coffee, lunch, return-home-for-long-gaps, library/study, dinner, gym. Still might need to tune these in the future.
+- **Added multimodal routing**: Put Stanford's OSM walk + bike networks into one graph with `walk_ok` / `bike_ok` edge flags and mode-specific routing weights.
+- **Better visual**: Now have a `purpose` tag, so you can see each agent's purpose for movement as they go.
+
+### Q1: Where and when does congestion peak?
+
+**Answered.** Top-line numbers from a 6,700-agent Monday at 5s sampling, with the latest sim:
+
+| metric | value |
+|---|---|
+| moving samples recorded | 2,587,589 |
+| unique agents observed moving | 6,528 |
+| unique edges seen | 3,482 |
+| congested edge-minutes (LoS D or worse, m²/person < 2.2) | 5,158 |
+| peak campus congestion | 5,637 agents @ 13:25 |
+
+**Figure A - Per-minute campus congestion across the day.**
+
+![Figure A](outputs/cp2_congestion_timeseries.png)
+
+Lunch (13:15–13:30) first. Secondary peaks at morning passing periods, late-afternoon class transitions (14:45–15:00, 16:45–17:00), and gym/dinner wave (17:00–17:15).
+
+**Table B - Top 10 most congested (edge, time) pairs.** _Full 20 in `outputs/cp2_top20_edges.csv`._
+
+| time | u | v | n_agents | edge_length_m | m²/person | LoS |
+|---|---|---|---|---|---|---|
+| 13:22 | 8910620806 | 8910620812 | 70 | 3.4 | 0.1 | F |
+| 13:23 | 8910620806 | 8910620812 | 69 | 3.4 | 0.1 | F |
+| 11:52 | 6239344427 | 6261196608 | 76 | 3.8 | 0.1 | F |
+| 13:24 | 8910620806 | 8910620812 | 63 | 3.4 | 0.11 | F |
+| 13:26 | 5969785425 | 6467542562 | 84 | 4.7 | 0.11 | F |
+| 10:22 | 6239344427 | 6261196608 | 66 | 3.8 | 0.12 | F |
+| 12:22 | 6239344427 | 6261196608 | 58 | 3.8 | 0.13 | F |
+| 13:27 | 5969785425 | 6467542562 | 69 | 4.7 | 0.14 | F |
+| 11:22 | 6239344427 | 6261196608 | 52 | 3.8 | 0.15 | F |
+| 11:50 | 6467542562 | 5969785425 | 59 | 4.7 | 0.16 | F |
+
+Caveat: most of list is of sub-5m OSM artifact edges. Qualitative peaks (times of day) are correct; the specific "worst edge" assignment is a bit misleading - need to determine how to handle this.
+
+**Table C - Top 10 most exposed agents by congestion-time exposure.** _Full 20 in `outputs/cp2_top20_exposed_agents.csv`._
+
+| agent_id | dorm | school | mode | year | moving_time_s | congested_time_s | exposure_frac |
+|---|---|---|---|---|---|---|---|
+| 4187 | Donner | hs_humanities | bike | 1 | 9450 | 6090 | 0.644 |
+| 2062 | Larkin | engineering | bike | 1 | 8010 | 5160 | 0.644 |
+| 302 | Trancos | engineering | bike | 3 | 4500 | 2880 | 0.64 |
+| 5422 | Columbae | hs_humanities | bike | 2 | 4770 | 2880 | 0.604 |
+| 99 | Mars | hs_humanities | electric | 4 | 4410 | 2580 | 0.585 |
+| 4623 | Larkin | hs_social | bike | 1 | 10950 | 5940 | 0.542 |
+| 6368 | Donner | hs_interdisc | bike | 1 | 12210 | 6570 | 0.538 |
+| 4028 | EVGR | hs_social | bike | 3 | 6750 | 3630 | 0.538 |
+| 6450 | Crothers | hs_social | bike | 1 | 12150 | 6510 | 0.536 |
+| 3093 | Rinconada | engineering | bike | 1 | 8580 | 4560 | 0.531 |
+
+All top-exposed agents are bikers -- bikes traverse more edges per minute (so they show up on more (edge, minute) buckets). Dorms cluster around central-campus complexes (Stern: Donner, Larkin; Wilbur: Trancos, Rinconada).
+
+**Figure D - Moving agents over the day, by trip purpose.**
+
+![Figure D](outputs/cp2_moving_by_purpose.png)
+
+### Q2: Can ≤5 schedule shifts reduce peak congestion ≥20%?
+
+**Not yet answered.** With the current pipeline, I just need to modify the relevant section's start time in `schedules.csv`, re-run `sim/runner.py` + `eval/congestion.py`, compare the new peak/timing to baseline.
+
+**[Table E (stubbed): rows = top-5 lectures by enrollment, columns = {-60, -30, -15, +15, +30, +60} min shift, cells = (Δ peak, Δ exposure_frac, new peak hh:mm)]** - _empty, fills in after running the optimizer loop_.
+
+### Q3 (stretch): RL departure / routing agents
+
+Not currently in scope for this quarter.
+
+### Where things are 
+
+**Done:** full simulation pipeline, multi-layered behavior model, multimodal routing, congestion eval at three levels (edge / agent / campus), demo animation, three eval baselines still passing (empty / single agent / fake crowd).
+
+**Not done:**
+- Q2
+- Nicer interactive visualization (hopefully 3D, this one looks flat and sad)
+- Sit outside and get a baseline of an actual passing period :0
+- RL agents (Q3)
+
+### Run commands
+
+```bash
+python pipeline/tag_courses.py
+python pipeline/generate_population.py
+python pipeline/assign_schedules.py
+python pipeline/assign_behaviors.py 
+python sim/runner.py --n 6700 --day Monday
+python eval/congestion.py
+python scratch/viz_animation.py
+```
+
+---
+
 ## Summary
 
 I propose buildilng a simulation of ~7,000 Stanford undergraduate students navigating campus throughout a real school day, using real course schedules from Explore Courses and campus geography from OpenStreetMap. The output is a recorded visualization showing agent movement as a density heatmap over the campus path network, alongside graphs showing whne and where congestion peaks. I also plan to run a simple schedule optimizer, shifting large lectures by bracketed maounts and measuuring the effect on peak congestion to produce a concrete result. Time allowing, I plan to expand the students to RL agents that learn to choose departure times and routes to arrive within a comfortable window (10 min early to 5 min late) while avoiding congestion. This will help me observe if congestion drops when everyone navigates intelligently.

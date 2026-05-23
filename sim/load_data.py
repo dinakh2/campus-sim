@@ -15,12 +15,12 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-from paths import STUDENTS, SCHEDULES, COURSES_TAGGED
+from paths import STUDENTS, STUDENTS_EXTENDED, SCHEDULES, COURSES_TAGGED
 from sim.map_buildings import DORM_LOCATIONS, get_building_location
 
 WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
-# Single class meeting on a single day, fully resolved (building name + lat/lon, parsed time).
+# Single class meeting on a single day, fully resolved (building name + lat/lon, parsed time)
 @dataclass
 class Meeting:
     section_id: str
@@ -52,6 +52,34 @@ class AgentData:
     # Schedule: list of meetings
     meetings: list[Meeting] = field(default_factory=list)
 
+    # ----- Behavior attributes (from pipeline/assign_behaviors.py) -----
+    # If students_with_behaviors.csv loaded, populate
+
+    is_early_riser: bool = False
+    is_coffee_drinker: bool = False
+    coffee_destination: str = ""
+    coffee_duration_min: int = 8
+
+    eats_lunch_on_campus_base: float = 0.0
+    lunch_eateries: list[str] = field(default_factory=list)
+    lunch_dining_halls: list[str] = field(default_factory=list)
+    lunch_will_go_dorm: bool = False
+    lunch_duration_min: int = 30
+    lunch_avanti_eligible: bool = False
+    lunch_yme_eligible: bool = False
+
+    home_return_threshold_min: int = 10_000  # p much disabled
+
+    library_use_rate: float = 0.0
+    library_destinations: list[str] = field(default_factory=list)
+
+    eats_dinner_on_campus: bool = False
+    dinner_duration_min: int = 40
+
+    gym_days_per_week: int = 0
+    gym_destination: str = ""
+    gym_duration_min: int = 60
+
 # Time to seconds from midnight
 def _parse_time_to_sec(t: str | float) -> int | None:
     if not isinstance(t, str):
@@ -67,9 +95,22 @@ def _parse_days(s: str | float) -> list[str]:
         return []
     return [d.strip() for d in s.split(",") if d.strip() in WEEKDAYS]
 
-# Load all agent data
+# ("Tresidder|CODAB|Forbes") -> list[str]
+def _parse_pipe_list(cell) -> list[str]:
+    if not isinstance(cell, str) or not cell:
+        return []
+    
+    return [p for p in cell.split("|") if p]
+
 def load_agents() -> list[AgentData]:
-    students = pd.read_csv(STUDENTS)
+    if STUDENTS_EXTENDED.exists():
+        students = pd.read_csv(STUDENTS_EXTENDED)
+        has_behaviors = True
+        print(f"  Using {STUDENTS_EXTENDED.name} (behaviors enabled)")
+    else:
+        students = pd.read_csv(STUDENTS)
+        has_behaviors = False
+        print(f"  Using {STUDENTS.name} (no behaviors; run pipeline/assign_behaviors.py to enable)")
     schedules = pd.read_csv(SCHEDULES)
     courses = pd.read_csv(COURSES_TAGGED)
 
@@ -150,6 +191,31 @@ def load_agents() -> list[AgentData]:
         for sid in my_sections:
             my_meetings.extend(meetings_by_section.get(sid, []))
 
+        # behavior attributes if STUDENTS_EXTENDED loaded
+        behavior_kwargs = {}
+        if has_behaviors:
+            behavior_kwargs = {
+                "is_early_riser":            bool(s.is_early_riser),
+                "is_coffee_drinker":         bool(s.is_coffee_drinker),
+                "coffee_destination":        str(s.coffee_destination) if isinstance(s.coffee_destination, str) else "",
+                "coffee_duration_min":       int(s.coffee_duration_min),
+                "eats_lunch_on_campus_base": float(s.eats_lunch_on_campus_base),
+                "lunch_eateries":            _parse_pipe_list(s.lunch_eateries),
+                "lunch_dining_halls":        _parse_pipe_list(s.lunch_dining_halls),
+                "lunch_will_go_dorm":        bool(s.lunch_will_go_dorm),
+                "lunch_duration_min":        int(s.lunch_duration_min),
+                "lunch_avanti_eligible":     bool(s.lunch_avanti_eligible),
+                "lunch_yme_eligible":        bool(s.lunch_yme_eligible),
+                "home_return_threshold_min": int(s.home_return_threshold_min),
+                "library_use_rate":          float(s.library_use_rate),
+                "library_destinations":      _parse_pipe_list(s.library_destinations),
+                "eats_dinner_on_campus":     bool(s.eats_dinner_on_campus),
+                "dinner_duration_min":       int(s.dinner_duration_min),
+                "gym_days_per_week":         int(s.gym_days_per_week),
+                "gym_destination":           str(s.gym_destination) if isinstance(s.gym_destination, str) else "",
+                "gym_duration_min":          int(s.gym_duration_min),
+            }
+
         # Add to big agents list
         agents.append(AgentData(
             student_id=s.id,
@@ -161,9 +227,10 @@ def load_agents() -> list[AgentData]:
             dorm_lat=dorm_lat,
             dorm_lon=dorm_lon,
             meetings=my_meetings,
+            **behavior_kwargs,
         ))
 
-    # Safety print
+    # Safety
     if missing_dorm:
         print(f"  !! {missing_dorm} students have unresolved dorm - skipped")
     print(f"  Built {len(agents)} agents")
