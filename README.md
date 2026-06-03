@@ -3,7 +3,7 @@
 **Student:** Dina Hashash | hashash@stanford.edu
 **Course:** CS348K - Visual Computing Systems, Spring 2026
 
-**📄 Final writeup → [FINAL_REPORT.md](FINAL_REPORT.md)**
+**Final writeup → [FINAL_REPORT.md](FINAL_REPORT.md)**
 
 ---
 
