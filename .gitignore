@@ -36,3 +36,6 @@ trajectories/
 outputs/
 *.mp4
 *.avi
+
+# Exception: report assets
+!report/figures/*.mp4

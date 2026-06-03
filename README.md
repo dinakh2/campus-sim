@@ -1,7 +1,9 @@
 # Campus Cluster: Simulating Stanford Student Traffic to Understand Campus Congestion
 
-**Student:** Dina Hashash | hashash@stanford.edu  
+**Student:** Dina Hashash | hashash@stanford.edu
 **Course:** CS348K - Visual Computing Systems, Spring 2026
+
+**📄 Final writeup → [FINAL_REPORT.md](FINAL_REPORT.md)**
 
 ---
 
@@ -110,20 +112,22 @@ Baseline results:
 
 Lunch (13:15–13:30) first. Secondary peaks at morning passing periods, late-afternoon class transitions (14:45–15:00, 16:45–17:00), and gym/dinner wave (17:00–17:15).
 
-**Table B - Top 10 most congested (edge, time) pairs.** _Full 20 in `outputs/cp2_top20_edges.csv`._
+**Table B - Top 10 most congested (edge, time) pairs.** _Full 20 with raw `u, v` node IDs in `outputs/cp2_top20_edges.csv`._
 
-| time | u | v | n_agents | edge_length_m | m²/person | LoS |
+| time | nearest_landmark | landmark_dist_m | n_agents | edge_length_m | m²/person | LoS |
 |---|---|---|---|---|---|---|
-| 13:22 | 8910620806 | 8910620812 | 70 | 3.4 | 0.1 | F |
-| 13:23 | 8910620806 | 8910620812 | 69 | 3.4 | 0.1 | F |
-| 11:52 | 6239344427 | 6261196608 | 76 | 3.8 | 0.1 | F |
-| 13:24 | 8910620806 | 8910620812 | 63 | 3.4 | 0.11 | F |
-| 13:26 | 5969785425 | 6467542562 | 84 | 4.7 | 0.11 | F |
-| 10:22 | 6239344427 | 6261196608 | 66 | 3.8 | 0.12 | F |
-| 12:22 | 6239344427 | 6261196608 | 58 | 3.8 | 0.13 | F |
-| 13:27 | 5969785425 | 6467542562 | 69 | 4.7 | 0.14 | F |
-| 11:22 | 6239344427 | 6261196608 | 52 | 3.8 | 0.15 | F |
-| 11:50 | 6467542562 | 5969785425 | 59 | 4.7 | 0.16 | F |
+| 13:22 | Panda Express | 33.9 | 70 | 3.4 | 0.10 | F |
+| 13:23 | Panda Express | 33.9 | 69 | 3.4 | 0.10 | F |
+| 11:52 | STLC Building | 44.2 | 76 | 3.8 | 0.10 | F |
+| 13:24 | Panda Express | 33.9 | 63 | 3.4 | 0.11 | F |
+| 13:26 | Main Quad | 25.2 | 84 | 4.7 | 0.11 | F |
+| 10:22 | STLC Building | 44.2 | 66 | 3.8 | 0.12 | F |
+| 12:22 | STLC Building | 44.2 | 58 | 3.8 | 0.13 | F |
+| 13:27 | Main Quad | 25.2 | 69 | 4.7 | 0.14 | F |
+| 11:22 | STLC Building | 44.2 | 52 | 3.8 | 0.15 | F |
+| 11:50 | Main Quad | 25.2 | 59 | 4.7 | 0.16 | F |
+
+`landmark_dist_m` is the haversine distance from the edge midpoint to the named landmark, so "Panda Express, 33.9m" means the edge is in the Tresidder/food-court area but not exactly at the building. Clusters that emerge: **Tresidder food court** (lunchtime crowd), **STLC / SAPP corridor** (engineering quad, hourly class transitions), and **Main Quad** (passing-period flow through the center).
 
 Caveat: most of list is of sub-5m OSM artifact edges. Qualitative peaks (times of day) are correct; the specific "worst edge" assignment is a bit misleading - need to determine how to handle this.
 
@@ -150,9 +154,65 @@ All top-exposed agents are bikers -- bikes traverse more edges per minute (so th
 
 ### Q2: Can ≤5 schedule shifts reduce peak congestion ≥20%?
 
-**Not yet answered.** With the current pipeline, I just need to modify the relevant section's start time in `schedules.csv`, re-run `sim/runner.py` + `eval/congestion.py`, compare the new peak/timing to baseline.
+**Answered — and the answer is no.** Within the tested lever set (top-5 Wednesday lectures × ±15/30/60 min shifts), peak congestion cannot be reduced by the 20% threshold the CP1 success criterion called for.
 
-**[Table E (stubbed): rows = top-5 lectures by enrollment, columns = {-60, -30, -15, +15, +30, +60} min shift, cells = (Δ peak, Δ exposure_frac, new peak hh:mm)]** - _empty, fills in after running the optimizer loop_.
+**Setup.** I ran the sim on Wednesday because that day's the only one that hits both class cadences (M/W classes meet on Wed AND W/F classes also meet on Wed) so it has the highest baseline traffic of any weekday. The W_baseline peak is **5,908 agents at 13:25** (4.8% higher than Monday's 5,637 — sanity check). Target reduction: 20% → new peak ≤ 4,726.
+
+**Top-5 lectures targeted (by enrollment, Wednesday-meeting):**
+
+| # | section | n | building | original time |
+|---|---|---|---|---|
+| 1 | CS 224R | 555 | NVIDIA Auditorium | 09:30–10:50 |
+| 2 | ECON 43 | 306 | Bishop Auditorium | 10:30–12:20 |
+| 3 | CS 106B | 264 | Hewlett 200 | 13:30–14:20 |
+| 4 | CS 229 / STATS 229 | 249 | NVIDIA Auditorium | 15:00–16:20 |
+| 5 | CS 221 | 246 | Hewlett 200 | 10:30–12:20 |
+
+**Single-shift sweep.** 30 individual (lecture, shift) experiments, plus 3 extra after substituting CS 109 in for CS 229 (see *Infeasibility* below). Full table in `outputs/q2/W_results_table.csv`; here are the best 6 of 23 feasible:
+
+| lecture | shift | new peak | new peak time | delta | success? |
+|---|---|---|---|---|---|
+| CS 106B | −30 min | 5,353 | 13:25 | **−9.4%** | no |
+| CS 106B | −15 min | 5,350 | 13:25 | −9.4% | no |
+| CS 106B | −60 min | 5,413 | 13:25 | −8.4% | no |
+| CS 109 | −30 min | 5,762 | 13:25 | −2.5% | no |
+| CS 109 | −60 min | 5,762 | 13:25 | −2.5% | no |
+| CS 109 | −15 min | 5,761 | 13:25 | −2.5% | no |
+
+Across all 23 feasible shifts, the peak **never moves from 13:25** and the best single-shift result is −9.4%.
+
+**Combined-shift experiments.** Since no single shift met the threshold, I stacked the best per-lecture shifts into combined sims:
+
+| experiment | shifts applied | new peak | new peak time | delta |
+|---|---|---|---|---|
+| W_baseline | (none) | 5,908 | 13:25 | — |
+| best single (CS 106B −15) | 1 shift | 5,353 | 13:25 | −9.4% |
+| `W_combined_best4` | CS 224R −30, ECON 43 −60, CS 106B −15, CS 221 +30 | 5,272 | 13:25 | −10.8% |
+| `W_combined_best5` | + CS 109 −30 (replacing infeasible CS 229) | **5,151** | 13:25 | **−12.8%** |
+
+So even moving five of the top-5 simultaneously gets only to −12.8%. **The 20% threshold is not achievable with this lever set.**
+
+**Marginal value of each lecture's shift** (how much it contributes when added to the combined):
+
+- CS 106B: ~9.4 pp (carries the experiment)
+- CS 109: ~2.0 pp
+- CS 224R + ECON 43 + CS 221 combined: ~1.4 pp (basically noise)
+
+**Two lectures (CS 106B + CS 109) account for almost all the achievable reduction.** They're the two classes whose original start times sit closest to the 13:25 peak, and they meet in Hewlett 200 + NVIDIA — both near the Tresidder lunch corridor.
+
+**Infeasibility.** 13 of the 36 attempted shifts were marked infeasible due to real-Stanford room conflicts (NOT a sim bug). The interesting case:
+
+- **CS 229 has zero feasible shifts.** Negative shifts collide with CS 109 in NVIDIA Auditorium (1:30–2:50 PM). Positive shifts collide with MS&E 472 also in NVIDIA (4:30 PM start). NVIDIA is fully packed around CS 229's slot within ±60 min.
+- **Cross-listing bug caught during this work:** CS 229 / STATS 229 are the same physical meeting registered under two subject codes. The room-conflict check originally flagged STATS 229 as blocking CS 229's positive shifts — a false positive. Fix in `pipeline/q2_optimizer.py:find_cross_listings()`: sections sharing exact `(building, days, start_time, end_time)` are treated as one class.
+
+**Interpretation.** The 13:25 peak is **structurally driven by lunch-time pedestrian flow**, not by the arrival/departure waves of any single lecture. Lectures very close to 13:25 (CS 106B at 13:30, CS 109 at 13:30) contribute most; lectures farther away contribute almost nothing. To meaningfully reduce the lunch peak, you'd need to target the *lunch behavior model* (eat-on-campus rate, dining-hall distribution) rather than shift class times.
+
+**Comparison visualizations.** Two side-by-side animations + time-series overlays were rendered for visual comparison:
+
+- [outputs/q2/W_comparison_W_baseline_vs_W_shift_CS-106B-LEC-01_-15min.png](outputs/q2/W_comparison_W_baseline_vs_W_shift_CS-106B-LEC-01_-15min.png) and [.mp4](outputs/q2/W_comparison_W_baseline_vs_W_shift_CS-106B-LEC-01_-15min.mp4) — best single shift
+- [outputs/q2/W_comparison_W_baseline_vs_W_combined_best5.png](outputs/q2/W_comparison_W_baseline_vs_W_combined_best5.png) and [.mp4](outputs/q2/W_comparison_W_baseline_vs_W_combined_best5.mp4) — best 5-shift combined
+
+**Q2 success criterion result:** ❌ NOT met. **Q2 finding result:** ✅ a clean negative result with a defensible mechanistic explanation.
 
 ### Q3 (stretch): RL departure / routing agents
 
